@@ -1,5 +1,5 @@
 # Audio Visualizer
-Replace this text with a brief description (2-3 sentences) of your project. This description should draw the reader in and make them interested in what you've built. You can include what the biggest challenges, takeaways, and triumphs from completing the project were. As you complete your portfolio, remember your audience is less familiar than you are with all that your project entails!
+My project takes in sound and frequency to display an animation on a matrix, which creates a very unique, animation-like pattern that fluctuates with the music you listen to. There are two versions of this project, one where it can be hooked up directly to a device and display the sound coming directly from the device, and the other model is one where the sound is taken in from the environment and displays whatever it hears.
 
 You should comment out all portions of your portfolio that you have not completed yet, as well as any instructions:
 ```HTML 
