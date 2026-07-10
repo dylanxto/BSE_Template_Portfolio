@@ -48,45 +48,13 @@ Here's where you'll put images of your schematics. [Tinkercad](https://www.tinke
 Here's where you'll put your code. The syntax below places it into a block of code. Follow the guide [here]([url](https://www.markdownguide.org/extended-syntax/)) to learn how to customize it to your project needs. 
 
 ```c++
-/*
-  DIY MUSIC / AUDIO VISUALIZER
-  =============================
-  Rebuilt from the CircuitDigest Arduino Nano project so it works with:
-    - ELEGOO UNO R3 (Arduino Uno)
-    - 32x8 dot matrix display (four cascaded MAX7219 8x8 modules)
-    - KY-038 / FC-04 style sound sensor module (AO pin)
-  ...and with the CURRENT versions of:
-    - arduinoFFT   v2.x, by Enrique Condes  - Library Manager: "arduinoFFT"
-    - MD_MAX72XX   by MajicDesigns          - Library Manager: "MD_MAX72XX"
-
-  WIRING
-  ------
-  Dot matrix -> Arduino Uno        Sound sensor -> Arduino Uno
-    VCC -> 5V                        +  -> 5V
-    GND -> GND                       G  -> GND
-    DIN -> D11                       AO -> A0
-    CS  -> D10                       DO -> not used here
-    CLK -> D13
-
-  On upload, all 32 columns flash on for half a second - that's a
-  wiring self-test for the display, independent of the microphone.
-
-  If that flash looks scrambled, mirrored, or only partly lights up,
-  your matrix modules use different internal wiring than assumed.
-  Change HARDWARE_TYPE below to one of MD_MAX72XX::FC16_HW / GENERIC_HW
-  / PAROLA_HW / ICSTATION_HW and re-upload until the self-test flash
-  fills the whole display cleanly. This mismatch is the single most
-  common reason these cheap 4-in-1 matrix boards look glitchy - the
-  internal wiring varies by manufacturer even when the boards look
-  identical.
-*/
 
 #include <SPI.h>
 #include <MD_MAX72xx.h>
 #include <arduinoFFT.h>
 
-// ---------------- Dot matrix display ----------------
-#define HARDWARE_TYPE MD_MAX72XX::FC16_HW   // try GENERIC_HW / PAROLA_HW / ICSTATION_HW if the self-test looks wrong
+// Dot Matrix Display
+#define HARDWARE_TYPE MD_MAX72XX::FC16_HW   
 #define MAX_DEVICES   4
 #define CLK_PIN       13
 #define DATA_PIN      11
@@ -94,10 +62,10 @@ Here's where you'll put your code. The syntax below places it into a block of co
 
 MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
 
-// ---------------- Sound sensor ----------------
+// Sound Sensor
 const int MIC_PIN = A0;
 
-// ---------------- FFT settings ----------------
+// FFT Settings
 const uint16_t SAMPLES            = 64;      // must be a power of 2; also 2x the number of display columns
 const double   SAMPLING_FREQUENCY = 9000.0;  // Hz, approx. max for a stock Uno's analogRead() - fine for a visual effect
 
@@ -105,27 +73,17 @@ double vReal[SAMPLES];
 double vImag[SAMPLES];
 ArduinoFFT<double> FFT = ArduinoFFT<double>(vReal, vImag, SAMPLES, SAMPLING_FREQUENCY);
 
-// Stand-in for the pot-based "sensitivity" the original Nano code read
-// from a second analog pin - this sensor module doesn't expose one, so
 //It's a fixed value you tune by hand instead. Raise it if the bars are
-//always maxed out; lower it if they barely move. See DEBUG below.
+//always maxed out; lower it if they barely move.
 double SENSITIVITY = 3.3;
 
-// NOISE GATE: bars below this magnitude are treated as silence, so
-// residual noise can't keep columns lit when nothing is actually
-// playing. Raise this if the display still glows/lingers at rest;
-// lower it if quiet sounds stop registering.
+// Noise Gate: bars below this magnitude are treated as silence
 const long NOISE_FLOOR = 8;
 
-// How many LEDs (bottom to top) are lit for a given bar height, 0-8.
 const byte spectralHeight[] = {
   0b00000000, 0b10000000, 0b11000000, 0b11100000,
   0b11110000, 0b11111000, 0b11111100, 0b11111110, 0b11111111
 };
-
-// Set true to print the loudest bin's magnitude a few times a second -
-// useful while tuning SENSITIVITY and the constrain() range below.
-const bool DEBUG = false;
 
 void setup() {
   Serial.begin(115200);
