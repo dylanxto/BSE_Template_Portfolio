@@ -19,7 +19,7 @@ You should comment out all portions of your portfolio that you have not complete
 
 **Don't forget to replace the text below with the embedding for your milestone video. Go to Youtube, click Share -> Embed, and copy and paste the code to replace what's below.**
 
-<iframe width="560" height="315" src="https://youtu.be/oefBqehaEvg" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://www.youtube.com/embed/oefBqehaEvg?si=cdxEnQWRommijXn7" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
 
 For your final milestone, explain the outcome of your project. Key details to include are:
 - Since the first milestone, I have made three major changes to my project. I removed the sound sensor so that the matrix displays patterns generated directly by a device rather than by the environment. I also updated the matrix display; the new one I am using is RGB and can display a wider range of colors and more complex patterns. Lastly, I now have a separate power adapter that connects directly to the matrix to prevent the Arduino from short-circuiting.
