@@ -19,12 +19,12 @@ You should comment out all portions of your portfolio that you have not complete
 
 **Don't forget to replace the text below with the embedding for your milestone video. Go to Youtube, click Share -> Embed, and copy and paste the code to replace what's below.**
 
-<iframe width="560" height="315" src="https://youtube.com/shorts/El6LHE-0cwc?si=nooa3J-_6MKPlwVD" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
+<iframe width="560" height="315" src="https://youtube.com/shorts/ibIaXyWrMWU?feature=share" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" allowfullscreen></iframe>
 
 For your final milestone, explain the outcome of your project. Key details to include are:
 - Since the first milestone, I have made three major changes to my project. I removed the sound sensor so that the matrix displays patterns generated directly by a device rather than by the environment. I also updated the matrix display; the new one I am using is RGB and can display a wider range of colors and more complex patterns. Lastly, I now have a separate power adapter that connects directly to the matrix to prevent the Arduino from short-circuiting.
-- What were your biggest challenges and triumphs at BSE
-- Throughout the project, I learned the basics of wiring and labels that are commonly used in electronics, such as V5 being power, and GND meaning ground. I also learned a lot about debugging and the importance of libraries in code, and how they can affect what happens within the code.
+- During my time at Bluestamp Engineering, my biggest challenge was troubleshooting my project, as the first time I attempted to create the base and modified project, something would go wrong, and a random pattern would be shown on the display. Figuring out what was wrong was extremely difficult as I had no clue where to start, having only the knowledge provided to me by the tutorial. On that note, however, my biggest triumphs are when I find the issue, whether it be a hardware or software issue, as from there I know my project will work.
+- Throughout the project, I learned the basics of wiring and labels that are commonly used in electronics, such as V5, which stands for power, and GND, meaning ground. I also learned a lot about debugging and the importance of libraries in code, and how they can affect what happens within the code.
 - In the future, I hope to learn more about electrical systems and be able to understand how they operate without relying on a guide or manual. I would also like to learn more about coding an Arduino, as there is far more that is possible with it that I haven't explored yet.
 
 # First Milestone
@@ -44,7 +44,7 @@ For your first milestone, describe what your project is and how you plan to buil
 # Schematics 
 Here's where you'll put images of your schematics. [Tinkercad](https://www.tinkercad.com/blog/official-guide-to-tinkercad-circuits) and [Fritzing](https://fritzing.org/learning/) are both great resoruces to create professional schematic diagrams, though BSE recommends Tinkercad becuase it can be done easily and for free in the browser. 
 
-# Code
+# Code (Base Project)
 Here's where you'll put your code. The syntax below places it into a block of code. Follow the guide [here]([url](https://www.markdownguide.org/extended-syntax/)) to learn how to customize it to your project needs. 
 
 ```c++
@@ -153,7 +153,158 @@ void printDebug() {
   Serial.println(peak);
 }
 ```
+# Code (Modified Project in Processing)
 
+```c++
+import ddf.minim.*;
+import ddf.minim.analysis.*;
+import processing.serial.*;
+
+// Adjustable settings
+float SENSITIVITY = 15.0;
+float SMOOTHING   = 0.75;
+final float MIN_FREQ = 40;
+final float MAX_FREQ = 18000;
+// ────────────────────────────────────────────────────────
+
+final int COLS = 8;
+final int ROWS = 8;
+
+Minim minim;
+AudioInput audioIn;
+FFT fft;
+Serial arduinoPort;
+float[] smoothed = new float[COLS];
+
+void setup() {
+  size(640, 400);
+  background(0);
+
+  minim   = new Minim(this);
+  audioIn = minim.getLineIn(Minim.STEREO, 1024);
+  fft     = new FFT(audioIn.bufferSize(), audioIn.sampleRate());
+
+  println("=== Available Serial Ports ===");
+  printArray(Serial.list());
+
+  for (String port : Serial.list()) {
+    if (port.contains("usbmodem") || port.contains("usbserial") || port.contains("COM")) {
+      arduinoPort = new Serial(this, port, 115200);
+      println("✅ Arduino connected on: " + port);
+      break;
+    }
+  }
+
+  if (arduinoPort == null) {
+    println("⚠️  Arduino not found! Check your USB cable.");
+  }
+}
+
+void draw() {
+  background(0);
+  fft.forward(audioIn.mix);
+
+  for (int i = 0; i < COLS; i++) {
+    float lo  = MIN_FREQ * pow(MAX_FREQ / MIN_FREQ, (float) i / COLS);
+    float hi  = MIN_FREQ * pow(MAX_FREQ / MIN_FREQ, (float)(i + 1) / COLS);
+
+    float avg = fft.calcAvg(lo, hi) / SENSITIVITY;
+
+    smoothed[i] = smoothed[i] * SMOOTHING + avg * (1 - SMOOTHING);
+    smoothed[i] = constrain(smoothed[i], 0, 1);
+
+    float barH = smoothed[i] * height;
+    float barW = width / COLS;
+
+    fill(smoothed[i] * 255, (1 - smoothed[i]) * 255, 200);
+    noStroke();
+    rect(i * barW, height - barH, barW - 4, barH);
+
+    fill(150);
+    textSize(11);
+    textAlign(CENTER);
+    text(nf(lo, 0, 0) + "Hz", i * barW + barW / 2, height - 5);
+  }
+
+  if (arduinoPort != null) {
+    byte[] data = new byte[COLS];
+    for (int i = 0; i < COLS; i++) {
+      data[i] = (byte) constrain((int)(smoothed[i] * ROWS), 0, ROWS);
+    }
+    arduinoPort.write(data);
+  }
+}
+
+void stop() {
+  if (audioIn != null) audioIn.close();
+  minim.stop();
+  super.stop();
+}
+```
+# Code (Modified Project Arduino IDE)
+```c++
+#include <FastLED.h>
+
+#define LED_PIN 6
+#define WIDTH 8
+#define HEIGHT 8
+#define NUM_LEDS 64
+
+CRGB leds[NUM_LEDS];
+
+byte levels[WIDTH];
+
+int XY(int x, int y)
+{
+  if (y % 2 == 0)
+    return y * WIDTH + x;
+  else
+    return y * WIDTH + (WIDTH - 1 - x);
+}
+
+void setup()
+{
+  Serial.begin(115200);
+
+  FastLED.addLeds<WS2812B, LED_PIN, GRB>(leds, NUM_LEDS);
+
+  FastLED.setBrightness(150);
+}
+
+void loop()
+{
+  if (Serial.available() >= WIDTH)
+  {
+    for (int i = 0; i < WIDTH; i++)
+    {
+      levels[i] = Serial.read();
+      if (levels[i] > 8)
+        levels[i] = 8;
+    }
+
+    fill_solid(leds, NUM_LEDS, CRGB::Black);
+
+    for (int x = 0; x < WIDTH; x++)
+    {
+      for (int y = 0; y < levels[x]; y++)
+      {
+        float t = (float)x / 3.5;  // fade completes halfway across the matrix
+
+if (t > 1)
+  t = 1;
+
+uint8_t hue = map(t * 100, 0, 100,
+                  128,   // teal
+                  220);  // pink
+
+        leds[XY(x, y)] = CHSV(hue, 255, 255);
+      }
+    }
+
+    FastLED.show();
+  }
+}
+```
 # Bill of Materials
 Here's where you'll list the parts in your project. To add more rows, just copy and paste the example rows below.
 Don't forget to place the link to buy each component inside the quotation marks in the corresponding row after href =. Follow the guide [here]([url](https://www.markdownguide.org/extended-syntax/)) to learn how to customize this to your project needs. 
