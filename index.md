@@ -44,115 +44,6 @@ For your first milestone, describe what your project is and how you plan to buil
 # Schematics 
 Here's where you'll put images of your schematics. [Tinkercad](https://www.tinkercad.com/blog/official-guide-to-tinkercad-circuits) and [Fritzing](https://fritzing.org/learning/) are both great resoruces to create professional schematic diagrams, though BSE recommends Tinkercad becuase it can be done easily and for free in the browser. 
 
-# Code (Base Project)
-Here's where you'll put your code. The syntax below places it into a block of code. Follow the guide [here]([url](https://www.markdownguide.org/extended-syntax/)) to learn how to customize it to your project needs. 
-
-```c++
-
-#include <SPI.h>
-#include <MD_MAX72xx.h>
-#include <arduinoFFT.h>
-
-// Dot Matrix Display
-#define HARDWARE_TYPE MD_MAX72XX::FC16_HW   
-#define MAX_DEVICES   4
-#define CLK_PIN       13
-#define DATA_PIN      11
-#define CS_PIN        10
-
-MD_MAX72XX mx = MD_MAX72XX(HARDWARE_TYPE, CS_PIN, MAX_DEVICES);
-
-// Sound Sensor
-const int MIC_PIN = A0;
-
-// FFT Settings
-const uint16_t SAMPLES            = 64;      // must be a power of 2; also 2x the number of display columns
-const double   SAMPLING_FREQUENCY = 9000.0;  // Hz, approx. max for a stock Uno's analogRead() - fine for a visual effect
-
-double vReal[SAMPLES];
-double vImag[SAMPLES];
-ArduinoFFT<double> FFT = ArduinoFFT<double>(vReal, vImag, SAMPLES, SAMPLING_FREQUENCY);
-
-//It's a fixed value you tune by hand instead. Raise it if the bars are
-//always maxed out; lower it if they barely move.
-double SENSITIVITY = 3.3;
-
-// Noise Gate: bars below this magnitude are treated as silence
-const long NOISE_FLOOR = 8;
-
-const byte spectralHeight[] = {
-  0b00000000, 0b10000000, 0b11000000, 0b11100000,
-  0b11110000, 0b11111000, 0b11111100, 0b11111110, 0b11111111
-};
-
-void setup() {
-  Serial.begin(115200);
-  mx.begin();
-  mx.control(MD_MAX72XX::INTENSITY, 8); // brightness 0 (dim) - 15 (bright)
-
-  // Display self-test: full-brightness flash, unrelated to audio.
-  mx.clear();
-  for (uint16_t c = 0; c < mx.getColumnCount(); c++) mx.setColumn(c, 0xFF);
-  delay(500);
-  mx.clear();
-}
-
-void loop() {
-  sampleAudio();
-
-  FFT.windowing(FFTWindow::Hamming, FFTDirection::Forward);
-  FFT.compute(FFTDirection::Forward);
-  FFT.complexToMagnitude();
-
-  if (DEBUG) printDebug();
-
-  drawSpectrum();
-}
-
-void sampleAudio() {
-  // Sampled back-to-back as fast as analogRead() allows. Exact timing
-  // isn't critical for a visual effect, just reasonably consistent.
-  int raw[SAMPLES];
-  long total = 0;
-
-  for (uint16_t i = 0; i < SAMPLES; i++) {
-    raw[i] = analogRead(MIC_PIN);
-    total += raw[i];
-  }
-
-  double mean = total / (double)SAMPLES; // remove DC offset so silence sits near 0
-  for (uint16_t i = 0; i < SAMPLES; i++) {
-    vReal[i] = (raw[i] - mean) / SENSITIVITY;
-    vImag[i] = 0.0;
-  }
-}
-
-void drawSpectrum() {
-  mx.control(MD_MAX72XX::UPDATE, MD_MAX72XX::OFF);
-  for (uint16_t i = 0; i < 32; i++) {
-    long magnitude = (long)constrain(vReal[i], 0.0, 80.0);
-
-    if (magnitude < NOISE_FLOOR) {
-      magnitude = 0; // treat anything below the floor as silence
-    }
-
-    int      rowsLit = map(magnitude, 0, 80, 0, 8);
-    uint16_t column  = 31 - i; // low frequencies on the right; drop the "31 -" to mirror it
-    mx.setColumn(column, spectralHeight[rowsLit]);
-  }
-  mx.control(MD_MAX72XX::UPDATE, MD_MAX72XX::ON);
-}
-
-void printDebug() {
-  static unsigned long lastPrint = 0;
-  if (millis() - lastPrint < 300) return;
-  lastPrint = millis();
-
-  double peak = 0;
-  for (uint16_t i = 1; i < 32; i++) peak = max(peak, vReal[i]);
-  Serial.println(peak);
-}
-```
 # Code (Modified Project in Processing)
 
 ```c++
@@ -241,7 +132,7 @@ void stop() {
   super.stop();
 }
 ```
-# Code (Modified Project Arduino IDE)
+# Code (Modified Project in Arduino IDE)
 ```c++
 #include <FastLED.h>
 
@@ -305,9 +196,7 @@ uint8_t hue = map(t * 100, 0, 100,
   }
 }
 ```
-# Bill of Materials
-Here's where you'll list the parts in your project. To add more rows, just copy and paste the example rows below.
-Don't forget to place the link to buy each component inside the quotation marks in the corresponding row after href =. Follow the guide [here]([url](https://www.markdownguide.org/extended-syntax/)) to learn how to customize this to your project needs. 
+# Bill of Materials 
 
 | **Part** | **Note** | **Price** | **Link** |
 |:--:|:--:|:--:|:--:|
@@ -321,5 +210,3 @@ One of the best parts about Github is that you can view how other people set up 
 - [Example 1](https://trashytuber.github.io/YimingJiaBlueStamp/)
 - [Example 2](https://sviatil0.github.io/Sviatoslav_BSE/)
 - [Example 3](https://arneshkumar.github.io/arneshbluestamp/)
-
-To watch the BSE tutorial on how to create a portfolio, click here.
